@@ -51,7 +51,7 @@ dataloader = DataLoader(dataset, batch_size=8, num_workers=8)
 jigsaw_stack, permutation = next(iter(dataloader))
 
 print(f'Jigsaw stack shape: {jigsaw_stack.shape}')
-Jigsaw stack shape: torch.Size([8, 32, 3, 48, 48])
+>>>Jigsaw stack shape: torch.Size([8, 32, 3, 48, 48])
 
 print(f'Jigsaw permutation shape: {permutation.shape}')
 >>>Jigsaw permutation shape: torch.Size([8, 32])

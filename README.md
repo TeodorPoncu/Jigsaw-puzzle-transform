@@ -1,13 +1,16 @@
 # Jigsaw-puzzle-transform
-A repository that contains a simple function to get a patch permutation and its permutation indices. Contains a simple PyTorch dataloader wrapper as well. 
+A repository that contains a simple function to get a patch permutation and its permutation indices. Used for jigsaw puzzle pretraining - [Unsupervised Learning of Visual Representations by Solving Jigsaw Puzzles](https://arxiv.org/abs/1603.09246).
+Contains a simple PyTorch dataloader wrapper as well. 
 
 ### Extracting a grid of N x M patches from an image
+Setting `norm_patch=True` will normalize pixel values w.r.t. patch statistics as suggested in the paper.
+
 ```python3
 import torch
 
 img_tensor = torch.randn(size=(3, 360, 640))
 jigsaw_stack, permutation = create_jigsaw_grid(
-  img_tensor, grid_size=(4, 8), patch_size=(64, 64), crop_size=False, patch_norm=False
+  img_tensor, grid_size=(4, 8), patch_size=(64, 64), crop_size=False, norm_patch=False
 )
 
 print(f'Jigsaw stack shape: {jigsaw_stack.shape}')
@@ -24,7 +27,7 @@ import torch
 
 img_tensor = torch.randn(size=(8, 3, 360, 640))
 jigsaw_stack, permutation = create_jigsaw_grid(
-  img_tensor, grid_size=(4, 8), patch_size=(64, 64), crop_size=(48, 48), patch_norm=False
+  img_tensor, grid_size=(4, 8), patch_size=(64, 64), crop_size=(48, 48), norm_patch=False
 )
 
 print(f'Jigsaw stack shape: {jigsaw_stack.shape}')
@@ -45,7 +48,7 @@ from torch.utils.data import DataLoader
 image_folder_path = SOME_PATH
 dataset = JigsawDataset(
   image_folder_path, preprocess_transform=tvf.Compose([tvf.Resize(size=(360, 640)), tvf.ToTensor()]),
-  patch_size=(64, 64), grid_size=(4, 8), crop_size=(48, 48)
+  patch_size=(64, 64), grid_size=(4, 8), crop_size=(48, 48), norm_patch=False
 )
 dataloader = DataLoader(dataset, batch_size=8, num_workers=8)
 jigsaw_stack, permutation = next(iter(dataloader))

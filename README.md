@@ -6,7 +6,9 @@ A repository that contains a simple function to get a patch permutation and its 
 import torch
 
 img_tensor = torch.randn(size=(3, 360, 640))
-jigsaw_stack, permutation = create_jigsaw_grid(img_tensor, grid_size=(4, 8), patch_size=(64, 64), crop_size=False, patch_norm=False)
+jigsaw_stack, permutation = create_jigsaw_grid(
+  img_tensor, grid_size=(4, 8), patch_size=(64, 64), crop_size=False, patch_norm=False
+)
 
 print(f'Jigsaw stack shape: {jigsaw_stack.shape}')
 >>>Jigsaw stack shape: torch.Size([32, 3, 64, 64])
@@ -21,10 +23,12 @@ If used on tensors that have more than 3 dimensions, all jigsaw stacks will be c
 import torch
 
 img_tensor = torch.randn(size=(8, 3, 360, 640))
-jigsaw_stack, permutation = create_jigsaw_grid(img_tensor, grid_size=(4, 8), patch_size=(64, 64), crop_size=(48, 48), patch_norm=False)
+jigsaw_stack, permutation = create_jigsaw_grid(
+  img_tensor, grid_size=(4, 8), patch_size=(64, 64), crop_size=(48, 48), patch_norm=False
+)
 
 print(f'Jigsaw stack shape: {jigsaw_stack.shape}')
->>>Jigsaw stack shape: torch.Size([32, 8, 3, 64, 64])
+>>>Jigsaw stack shape: torch.Size([32, 8, 3, 48, 48])
 
 print(f'Jigsaw permutation shape: {permutation.shape}')
 >>>Jigsaw permutation shape: torch.Size([32])
@@ -39,12 +43,15 @@ from torch.utils.data import DataLoader
 
 
 image_folder_path = SOME_PATH
-dataset = JigsawDataset(image_folder_path, preprocess_transform=tvf.Compose([tvf.Resize(size=(360, 640)), tvf.ToTensor()]), patch_size=(64, 64), grid_size=(4, 8), crop_size=(48, 48))
+dataset = JigsawDataset(
+  image_folder_path, preprocess_transform=tvf.Compose([tvf.Resize(size=(360, 640)), tvf.ToTensor()]),
+  patch_size=(64, 64), grid_size=(4, 8), crop_size=(48, 48)
+)
 dataloader = DataLoader(dataset, batch_size=8, num_workers=8)
 jigsaw_stack, permutation = next(iter(dataloader))
 
 print(f'Jigsaw stack shape: {jigsaw_stack.shape}')
-Jigsaw stack shape: torch.Size([8, 32, 3, 64, 64])
+Jigsaw stack shape: torch.Size([8, 32, 3, 48, 48])
 
 print(f'Jigsaw permutation shape: {permutation.shape}')
 >>>Jigsaw permutation shape: torch.Size([8, 32])

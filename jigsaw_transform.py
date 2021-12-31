@@ -50,6 +50,7 @@ def create_jigsaw_grid(
         patch_size: Tuple[int, int],
         crop_size: Tuple[int, int] = None,
         norm_patch: bool = False,
+        permutation: torch.Tensor = None
 )-> Tuple[torch.Tensor, torch.Tensor]:
     """
     Creates a grid of patches from an image tensor.
@@ -59,6 +60,7 @@ def create_jigsaw_grid(
     :param patch_size: a tuple containing the size of the patches
     :param crop_size:  a tuple containing the size of the crop to be taken from each patch (default: None - no crop)
     :param norm_patch: if True, the patches are w.r.t. to patch statistics (default: False)
+    :param permutation: a tensor containing the permutation of the patches (default: None - random permutation)
     :return: a tuple containing the image patches and  permutation indices
         ret[0] shape: [n_patches, n_channels, patch_height, patch_width], patch dimensions will be crop dimensions if specified
         ret[1] shape: [n_patches]
@@ -98,14 +100,15 @@ def create_jigsaw_grid(
                 patch = patch_norm(patch)
             patches.append(patch)
     # create patch permutation
-    permutation = torch.randperm(len(patches))
+    if permutation is None:
+        permutation = torch.randperm(len(patches))
     # permute the patches
     permuted_patches = [patches[i] for i in permutation]
     # stack patches across n_patches axis
     permuted_patches = torch.stack(permuted_patches, dim=0)
     return permuted_patches, permutation
   
-  class JigsawDataset(Dataset):
+class JigsawDataset(Dataset):
     def __init__(
             self,
             images_root: str,
@@ -113,7 +116,7 @@ def create_jigsaw_grid(
             patch_size: Tuple[int, int],
             crop_size: Tuple[int, int] = None,
             norm_patch: bool = False,
-            preprocess_transform: Callable = tvf.ToTensor()
+            preprocess_transform: Callable = tvf.ToTensor(),
     ):
         super(JigsawDataset, self).__init__()
         self.transform = preprocess_transform
@@ -126,8 +129,43 @@ def create_jigsaw_grid(
 
     def __getitem__(self, item) -> Tuple:
         sample = Image.open(self.img_paths[item])
-        sample, permutation = self.jigsaw_transform(self.transform(sample))
+        sample, permutation = self.jigsaw_transform(self.transform(sample), permutation=None)
         return sample, permutation
+    
+class FixedJigsawDataset(Dataset):
+    def __init__(
+            self,
+            images_root: str,
+            grid_size: Tuple[int, int],
+            patch_size: Tuple[int, int],
+            permutations: List[torch.Tensor],
+            crop_size: Tuple[int, int] = None,
+            norm_patch: bool = False,
+            preprocess_transform: Callable = tvf.ToTensor(),
+    ):
+        super(JigsawDataset, self).__init__()
+        self.transform = preprocess_transform
+        self.jigsaw_transform = partial(create_jigsaw_grid, grid_size=grid_size, patch_size=patch_size, crop_size=crop_size, norm_patch=norm_patch)
+        self.img_paths = make_dataset(images_root)
+        self.size = len(self.img_paths)
+        
+        self.permutations = {i: permutations[i] for i in range(len(permutations))}
+
+    def __len__(self):
+        return self.size
+
+    def __getitem__(self, item) -> Tuple:
+        sample = Image.open(self.img_paths[item])
+        puzzle_key, puzzle_value = random.choice(list(self.permutations.items()))
+        sample, _ = self.jigsaw_transform(self.transform(sample), permutation=puzzle_value)
+        return sample, puzzle_key
+    
+def generate_permutations(permutation_size: int, n_permutations: int) -> List[torch.Tensor]:
+    """Function that generations n_permutations unique permutations of size permutation_size"""
+    permutations = [torch.randperm(permutation_size) for _ in range(n_permutations)]
+    while len(set(permutations)) != n_permutations:
+        permutations = [torch.randperm(permutation_size) for _ in range(n_permutations)]
+    return permutations
       
 if __name__ == '__main__':
     dataset = JigsawDatasetGithub('trainA', preprocess_transform=tvf.ToTensor(), patch_size=(64, 64), grid_size=(4, 8))
